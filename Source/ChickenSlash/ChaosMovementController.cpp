@@ -30,21 +30,20 @@ void AChaosMovementController::SpawnChicken()
 
 	FVector SpawnPosition = FVector(RandX, RandY, SpawnZ);
 	FActorSpawnParameters SpawnInfo; 
-	SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn; // Forces the pawn to spawn even if colliding
+	SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn; // Forces the pawn to spawn even if colliding
 	AChickenPawn *chicken = GetWorld()->SpawnActor<AChickenPawn>(ChickenBlueprint.Get(), SpawnPosition, FRotator(), SpawnInfo);
-	chicken->OnActorHit.AddDynamic(this, &AChaosMovementController::OnChickenHit);
+
+	chicken->OnActorBeginOverlap.AddDynamic(this, &AChaosMovementController::OnBeginOverlap);
+
 	Chickens.Add(chicken);	
 }
 
-void AChaosMovementController::OnChickenHit(class AActor * SelfActor, class AActor * OtherActor, FVector NormalImpulse, const FHitResult& Hit)
+void AChaosMovementController::OnBeginOverlap(class AActor * SelfActor, class AActor * OtherActor)
 {
-	AChickenPawn *Self = Cast<AChickenPawn>(SelfActor);
-
-	if (Self != nullptr)
+	if (AChickenPawn *Self = Cast<AChickenPawn>(SelfActor))
 	{
-		if (OtherActor->IsA(AChickenPawn::StaticClass()))
+		if (AChickenPawn* Other = Cast<AChickenPawn>(OtherActor))
 		{
-			AChickenPawn* Other = Cast<AChickenPawn>(OtherActor);
 			if (Other->Infected)
 			{
 				Self->Infected = true;
@@ -70,12 +69,25 @@ void AChaosMovementController::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	TArray<AChickenPawn *> toRemove;
 	for (auto chicken : Chickens)
 	{
 		if (chicken != nullptr)
 		{
-			chicken->TickMovement(DeltaTime);
+			if (!IsValid(chicken))
+			{
+				toRemove.Add(chicken);
+			}
+			else
+			{
+				chicken->TickMovement(DeltaTime);
+			}
 		}
+	}
+
+	for (auto chicken : toRemove)
+	{
+		Chickens.Remove(chicken);
 	}
 }
 

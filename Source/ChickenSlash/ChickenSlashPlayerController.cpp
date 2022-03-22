@@ -6,6 +6,7 @@
 #include "HeadMountedDisplayFunctionLibrary.h"
 #include "ChickenSlashCharacter.h"
 #include "Engine/World.h"
+#include "Kismet/GameplayStatics.h"
 
 AChickenSlashPlayerController::AChickenSlashPlayerController()
 {
@@ -18,10 +19,7 @@ void AChickenSlashPlayerController::PlayerTick(float DeltaTime)
 	Super::PlayerTick(DeltaTime);
 
 	// keep updating the destination every tick while desired
-	if (bMoveToMouseCursor)
-	{
-		MoveToMouseCursor();
-	}
+	RotateToMouseCursor();
 }
 
 void AChickenSlashPlayerController::SetupInputComponent()
@@ -29,84 +27,52 @@ void AChickenSlashPlayerController::SetupInputComponent()
 	// set up gameplay key bindings
 	Super::SetupInputComponent();
 
-	InputComponent->BindAction("SetDestination", IE_Pressed, this, &AChickenSlashPlayerController::OnSetDestinationPressed);
-	InputComponent->BindAction("SetDestination", IE_Released, this, &AChickenSlashPlayerController::OnSetDestinationReleased);
+	InputComponent->BindAction("SetDestination", IE_Pressed, this, &AChickenSlashPlayerController::Fire);
 
-	// support touch devices 
-	InputComponent->BindTouch(EInputEvent::IE_Pressed, this, &AChickenSlashPlayerController::MoveToTouchLocation);
-	InputComponent->BindTouch(EInputEvent::IE_Repeat, this, &AChickenSlashPlayerController::MoveToTouchLocation);
-
-	InputComponent->BindAction("ResetVR", IE_Pressed, this, &AChickenSlashPlayerController::OnResetVR);
+	InputComponent->BindAxis("MoveForward",this,  &AChickenSlashPlayerController::MoveForward);
+	InputComponent->BindAxis("MoveRight", this, &AChickenSlashPlayerController::MoveRight);
 }
 
-void AChickenSlashPlayerController::OnResetVR()
+void AChickenSlashPlayerController::MoveForward(float Axis)
 {
-	UHeadMountedDisplayFunctionLibrary::ResetOrientationAndPosition();
+	const FRotator Rotation = GetControlRotation();
+	const FRotator YawRotation(0, Rotation.Yaw, 0);
+
+	const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
+	GetPawn()->AddMovementInput(Direction, Axis);
 }
 
-void AChickenSlashPlayerController::MoveToMouseCursor()
+void AChickenSlashPlayerController::MoveRight(float Axis)
 {
-	if (UHeadMountedDisplayFunctionLibrary::IsHeadMountedDisplayEnabled())
+	const FRotator Rotation = GetControlRotation();
+	const FRotator YawRotation(0, Rotation.Yaw, 0);
+
+	const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
+	GetPawn()->AddMovementInput(Direction, Axis);
+}
+
+
+void AChickenSlashPlayerController::RotateToMouseCursor()
+{
+	if (AChickenSlashCharacter* MyPawn = Cast<AChickenSlashCharacter>(GetPawn()))
 	{
-		if (AChickenSlashCharacter* MyPawn = Cast<AChickenSlashCharacter>(GetPawn()))
+		if (MyPawn->GetCursorToWorld())
 		{
-			if (MyPawn->GetCursorToWorld())
-			{
-				UAIBlueprintHelperLibrary::SimpleMoveToLocation(this, MyPawn->GetCursorToWorld()->GetComponentLocation());
-			}
-		}
-	}
-	else
-	{
-		// Trace to see what is under the mouse cursor
-		FHitResult Hit;
-		GetHitResultUnderCursor(ECC_Visibility, false, Hit);
-
-		if (Hit.bBlockingHit)
-		{
-			// We hit something, move there
-			SetNewMoveDestination(Hit.ImpactPoint);
-		}
-	}
-}
-
-void AChickenSlashPlayerController::MoveToTouchLocation(const ETouchIndex::Type FingerIndex, const FVector Location)
-{
-	FVector2D ScreenSpaceLocation(Location);
-
-	// Trace to see what is under the touch location
-	FHitResult HitResult;
-	GetHitResultAtScreenPosition(ScreenSpaceLocation, CurrentClickTraceChannel, true, HitResult);
-	if (HitResult.bBlockingHit)
-	{
-		// We hit something, move there
-		SetNewMoveDestination(HitResult.ImpactPoint);
-	}
-}
-
-void AChickenSlashPlayerController::SetNewMoveDestination(const FVector DestLocation)
-{
-	APawn* const MyPawn = GetPawn();
-	if (MyPawn)
-	{
-		float const Distance = FVector::Dist(DestLocation, MyPawn->GetActorLocation());
-
-		// We need to issue move command only if far enough in order for walk animation to play correctly
-		if ((Distance > 120.0f))
-		{
-			UAIBlueprintHelperLibrary::SimpleMoveToLocation(this, DestLocation);
+			FVector Goal = MyPawn->GetCursorToWorld()->GetComponentLocation();
+			FVector ActorLocation = MyPawn->GetActorLocation();
+			FVector Direction = Goal - ActorLocation;
+			Direction.Z = 0;
+			Direction.Normalize();
+			MyPawn->SetActorRotation(Direction.Rotation());
 		}
 	}
 }
 
-void AChickenSlashPlayerController::OnSetDestinationPressed()
-{
-	// set flag to keep updating destination until released
-	bMoveToMouseCursor = true;
-}
 
-void AChickenSlashPlayerController::OnSetDestinationReleased()
+void AChickenSlashPlayerController::Fire()
 {
-	// clear flag to indicate we should stop updating the destination
-	bMoveToMouseCursor = false;
+	if (AChickenSlashCharacter* MyPawn = Cast<AChickenSlashCharacter>(GetPawn()))
+	{
+		MyPawn->LaunchGrenade();
+	}
 }

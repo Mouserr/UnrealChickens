@@ -37,6 +37,7 @@ void AChickenPawn::TickMovement(float DeltaTime)
 void AChickenPawn::PickDirection(FVector *ForcedDirection)
 {
 	Direction = ForcedDirection != nullptr ? *ForcedDirection : FVector(FMath::FRandRange(-1, 1), FMath::FRandRange(-1, 1), 0.0f);
-	NextDirectionChangeTime = DirectionChangeInterval;
+	SetActorRotation(FRotationMatrix::MakeFromX(Direction).Rotator());
+	NextDirectionChangeTime = FMath::FRandRange(-1, 1) + DirectionChangeInterval;
 }
 

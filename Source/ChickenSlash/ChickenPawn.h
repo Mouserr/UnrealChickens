@@ -36,5 +36,4 @@ private:
 	FVector Direction;
 	float NextDirectionChangeTime;
 	void PickDirection(FVector *ForcedDirection = nullptr);
-
 };

@@ -46,7 +46,8 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 private:
-	void OnChickenHit(class AActor * SelfActor, class AActor * OtherActor, FVector NormalImpulse, const FHitResult& Hit);
+	UFUNCTION()
+	void OnBeginOverlap(class AActor * SelfActor, class AActor * OtherActor);
 	
 	TArray<AChickenPawn *> Chickens;
 	
