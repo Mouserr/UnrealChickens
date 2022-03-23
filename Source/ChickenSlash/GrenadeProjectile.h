@@ -18,6 +18,9 @@ public:
 	AGrenadeProjectile();
 
 	UPROPERTY(EditAnywhere)
+	float ExplosionRadius = 100;
+	
+	UPROPERTY(EditAnywhere)
 	USphereComponent* Sphere;
 	// Projectile movement component.
 	UPROPERTY(VisibleAnywhere, Category = Movement)
@@ -25,9 +28,13 @@ public:
 	
 	// Function that initializes the projectile's velocity in the shoot direction.
 	void FireInDirection(const FVector& ShootDirection);
+
+	void DestroyDelayed();
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+
+	virtual void NotifyHit(UPrimitiveComponent* MyComp, AActor* Other, UPrimitiveComponent* OtherComp, bool bSelfMoved, FVector HitLocation, FVector HitNormal, FVector NormalImpulse, const FHitResult& Hit) override;
 
 public:	
 	// Called every frame

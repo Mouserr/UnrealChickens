@@ -14,6 +14,7 @@
 #include "Components/SphereComponent.h"
 #include "Materials/Material.h"
 #include "Engine/World.h"
+#include "Kismet/KismetMathLibrary.h"
 
 AChickenSlashCharacter::AChickenSlashCharacter()
 {
@@ -113,38 +114,36 @@ void AChickenSlashCharacter::OnChickenHit(UPrimitiveComponent* HitComponent, AAc
 
 bool TryGetStartVelocity(FVector startGlobalPosition, FVector targetGlobalPosition, float radAngle, float gravity, FVector& startVelocity)
 {
-	FVector lineDirection = targetGlobalPosition - startGlobalPosition;
-	float heightDiff = lineDirection.Z;
-	lineDirection.Z = 0;
+	const float Theta = (40 * PI / 180); // Launch angle in radians (40 being the launch angle in degrees)
 
-	float length = lineDirection.Size();
-	lineDirection.Z = length * FMath::Tan(radAngle);
-	length += heightDiff / FMath::Tan(radAngle);
-	if (length <= 0)
-	{
-		startVelocity = lineDirection;
-		return false;
-	}
+	FVector dir = targetGlobalPosition - startGlobalPosition;
+	float Sz = dir.Z; // Height difference
+	dir.Z = 0; // Remove hight from direction
+	float Sx = dir.Size(); // Distance
 
-	float velocity = FMath::Sqrt(length * gravity / FMath::Sin(2 * radAngle));
-	lineDirection.Normalize();
-	startVelocity = velocity * lineDirection;
+	const float V = (Sx / cos(Theta)) * FMath::Sqrt(gravity / (2 * (Sx * tan(Theta) - Sz)));
+	startVelocity = FVector(V*cos(Theta), 0, V*sin(Theta));
+
 	return true;
 }
 
 void AChickenSlashCharacter::LaunchGrenade()
 {
 	FVector Goal = CursorToWorld->GetComponentLocation();
-	FVector ActorLocation = GetActorLocation();
 	FVector Direction;
 	
 	FActorSpawnParameters SpawnInfo; 
 	SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn; // Forces the pawn to spawn even if colliding
+	SpawnInfo.Owner = this;
 
+	FVector StartLocation = GetActorLocation() + GetController()->GetControlRotation().RotateVector(GrenadeLaunchOffset);
+	const FRotator newrot = UKismetMathLibrary::FindLookAtRotation(StartLocation, Goal);
 	AGrenadeProjectile *Grenade = GetWorld()->SpawnActor<AGrenadeProjectile>(GrenadePrefab.Get(),
-		GetActorLocation() + GetController()->GetControlRotation().RotateVector(GrenadeLaunchOffset), FRotator(), SpawnInfo);
+	                                                                         StartLocation, FRotator(0, newrot.Yaw, 0), SpawnInfo);
 
-	if (!TryGetStartVelocity(ActorLocation, Goal, StartRadAngle, Grenade->ProjectileMovementComponent->GetGravityZ(),
+	Grenade->ProjectileMovementComponent->SetVelocityInLocalSpace(FVector(0, 0, 0));
+	const float Gravity = GetWorld()->GetGravityZ() * -1; // Gravity. (Must be a positive value)
+	if (!TryGetStartVelocity(StartLocation, Goal, StartRadAngle, Gravity,
 				Direction))
 	{
 		Direction.Normalize();
