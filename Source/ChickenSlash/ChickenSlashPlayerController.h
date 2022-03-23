@@ -32,6 +32,9 @@ protected:
 
 	/** Input handlers for SetDestination action. */
 	void Fire();
+	
+	UFUNCTION()
+	void RestartGame();
 };
 
 

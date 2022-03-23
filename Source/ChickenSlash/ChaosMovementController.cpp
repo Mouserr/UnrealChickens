@@ -3,6 +3,8 @@
 
 #include "ChaosMovementController.h"
 
+#include "Kismet/GameplayStatics.h"
+
 // Sets default values
 AChaosMovementController::AChaosMovementController()
 {
@@ -15,15 +17,25 @@ AChaosMovementController::AChaosMovementController()
 void AChaosMovementController::BeginPlay()
 {
 	Super::BeginPlay();
-	FTimerHandle UnusedHandle;
+	/*FTimerHandle UnusedHandle;
 	GetWorldTimerManager().SetTimer(
 		UnusedHandle, this, &AChaosMovementController::SpawnChicken,
 		1,true);
+		*/
 
 	SpawnOnStart();
 }
 
-void AChaosMovementController::SpawnChicken()
+void AChaosMovementController::Infect(AChickenPawn* chicken)
+{
+	if (!chicken->Infected)
+	{
+		chicken->Infected = true;
+		CurrentInfectedCount++;
+	}
+}
+
+AChickenPawn* AChaosMovementController::SpawnChicken()
 {
 	float RandX = FMath::RandRange(SpawnXMin, SpawnXMax);
 	float RandY = FMath::RandRange(SpawnYMin, SpawnYMax);
@@ -34,8 +46,9 @@ void AChaosMovementController::SpawnChicken()
 	AChickenPawn *chicken = GetWorld()->SpawnActor<AChickenPawn>(ChickenBlueprint.Get(), SpawnPosition, FRotator(), SpawnInfo);
 
 	chicken->OnActorBeginOverlap.AddDynamic(this, &AChaosMovementController::OnBeginOverlap);
-
-	Chickens.Add(chicken);	
+	
+	Chickens.Add(chicken);
+	return chicken;
 }
 
 void AChaosMovementController::OnBeginOverlap(class AActor * SelfActor, class AActor * OtherActor)
@@ -46,11 +59,11 @@ void AChaosMovementController::OnBeginOverlap(class AActor * SelfActor, class AA
 		{
 			if (Other->Infected)
 			{
-				Self->Infected = true;
+				Infect(Self);
 			}
 			else if (Self->Infected)
 			{
-				Other->Infected = true;
+				Infect(Other);
 			}
 		}
 	}	
@@ -60,7 +73,11 @@ void AChaosMovementController::SpawnOnStart()
 {
 	for (int i = 0; i < PreSpawnCount; i++)
 	{
-		SpawnChicken();
+		AChickenPawn* chicken = SpawnChicken();
+		if (CurrentInfectedCount < InfectedStartCount)
+		{
+			Infect(chicken);
+		}
 	}
 }
 
@@ -87,7 +104,17 @@ void AChaosMovementController::Tick(float DeltaTime)
 
 	for (auto chicken : toRemove)
 	{
+		if (chicken->Infected)
+		{
+			CurrentInfectedCount--;
+		}
+		
 		Chickens.Remove(chicken);
+	}
+
+	if (Chickens.IsEmpty())
+	{
+		UGameplayStatics::OpenLevel(GetWorld(), FName(*GetWorld()->GetName()), false);
 	}
 }
 

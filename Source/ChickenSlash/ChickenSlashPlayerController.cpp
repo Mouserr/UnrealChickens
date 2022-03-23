@@ -31,7 +31,14 @@ void AChickenSlashPlayerController::SetupInputComponent()
 
 	InputComponent->BindAxis("MoveForward",this,  &AChickenSlashPlayerController::MoveForward);
 	InputComponent->BindAxis("MoveRight", this, &AChickenSlashPlayerController::MoveRight);
+	InputComponent->BindAction("Restart", IE_Pressed,this,  &AChickenSlashPlayerController::RestartGame);
 }
+
+void AChickenSlashPlayerController::RestartGame()
+{
+	UGameplayStatics::OpenLevel(GetWorld(), FName(*GetWorld()->GetName()), false);
+}
+
 
 void AChickenSlashPlayerController::MoveForward(float Axis)
 {

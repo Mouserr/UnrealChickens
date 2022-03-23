@@ -3,6 +3,7 @@
 
 #include "GrenadeProjectile.h"
 
+#include "ChickenPawn.h"
 #include "DrawDebugHelpers.h"
 #include "Kismet/KismetMathLibrary.h"
 
@@ -69,12 +70,15 @@ void AGrenadeProjectile::NotifyHit(UPrimitiveComponent* MyComp, AActor* Other, U
 
 	// check if something got hit in the sweep
 	bool isHit = GetWorld()->SweepMultiByChannel(OutHits, Start, End, FQuat::Identity, ECC_WorldStatic, MyColSphere);
-
+	float DeathRadiusSquad = ExplosionDeathRadius * ExplosionDeathRadius;
 	if (isHit)
 	{
 		// loop through TArray
 		for (auto& Hit : OutHits)
 		{
+			if (!IsValid(Hit.GetActor()) || !Cast<AChickenPawn>(Hit.GetActor()))
+				continue;
+			
 			UShapeComponent* MeshComp = Cast<UShapeComponent>((Hit.GetActor())->GetRootComponent());
 
 			if (MeshComp)
@@ -82,6 +86,11 @@ void AGrenadeProjectile::NotifyHit(UPrimitiveComponent* MyComp, AActor* Other, U
 				// alternivly you can use  ERadialImpulseFalloff::RIF_Linear for the impulse to get linearly weaker as it gets further from origin.
 				// set the float radius to 500 and the float strength to 2000.
 				MeshComp->AddRadialImpulse(GetActorLocation(), 500.f, 2000.f, ERadialImpulseFalloff::RIF_Constant, true);
+
+				if ((Hit.GetActor()->GetActorLocation() - MyLocation).SizeSquared() < DeathRadiusSquad)
+				{
+					Hit.GetActor()->Destroy();
+				}
 			}
 		}
 	}

@@ -34,21 +34,30 @@ public:
 	UPROPERTY(EditAnywhere)
 	int PreSpawnCount;
 
+	UPROPERTY(EditAnywhere)
+	int InfectedStartCount;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	int CurrentInfectedCount;
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
+	void Infect(AChickenPawn* chicken);
 	void SpawnOnStart();
-	void SpawnChicken();
+	AChickenPawn* SpawnChicken();
 	
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
+	
+	
 private:
 	UFUNCTION()
 	void OnBeginOverlap(class AActor * SelfActor, class AActor * OtherActor);
 	
 	TArray<AChickenPawn *> Chickens;
-	
+
 };

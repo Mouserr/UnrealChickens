@@ -16,8 +16,6 @@ void AChickenPawn::BeginPlay()
 {
 	Super::BeginPlay();
 
-	Infected = FMath::RandRange(1,100) <= InfectionChance;
-	
 	PickDirection();
 }
 
