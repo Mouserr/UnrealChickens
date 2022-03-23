@@ -4,6 +4,7 @@
 #include "GrenadeProjectile.h"
 
 #include "DrawDebugHelpers.h"
+#include "Kismet/KismetMathLibrary.h"
 
 // Sets default values
 AGrenadeProjectile::AGrenadeProjectile()
@@ -57,8 +58,15 @@ void AGrenadeProjectile::NotifyHit(UPrimitiveComponent* MyComp, AActor* Other, U
 	FCollisionShape MyColSphere = FCollisionShape::MakeSphere(ExplosionRadius);
 
 	// draw collision sphere
-	DrawDebugSphere(GetWorld(), GetActorLocation(), MyColSphere.GetSphereRadius(), 50, FColor::Cyan, false, 0.5f);
-	
+	//DrawDebugSphere(GetWorld(), MyLocation, MyColSphere.GetSphereRadius(), 50, FColor::Cyan, false, 0.5f);
+	FActorSpawnParameters SpawnInfo; 
+	SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn; // Forces the pawn to spawn even if colliding
+	SpawnInfo.Owner = this;
+
+	AActor *Explosion = GetWorld()->SpawnActor<AActor>(ExplosionPrefab.Get(),
+																			 MyLocation, FRotator(), SpawnInfo);
+	Explosion->SetLifeSpan(2);
+
 	// check if something got hit in the sweep
 	bool isHit = GetWorld()->SweepMultiByChannel(OutHits, Start, End, FQuat::Identity, ECC_WorldStatic, MyColSphere);
 

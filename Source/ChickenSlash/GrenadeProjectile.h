@@ -21,6 +21,9 @@ public:
 	float ExplosionRadius = 100;
 	
 	UPROPERTY(EditAnywhere)
+	TSubclassOf<AActor> ExplosionPrefab;
+	
+	UPROPERTY(EditAnywhere)
 	USphereComponent* Sphere;
 	// Projectile movement component.
 	UPROPERTY(VisibleAnywhere, Category = Movement)
