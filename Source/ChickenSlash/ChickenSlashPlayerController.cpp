@@ -3,7 +3,6 @@
 #include "ChickenSlashPlayerController.h"
 #include "Blueprint/AIBlueprintHelperLibrary.h"
 #include "Runtime/Engine/Classes/Components/DecalComponent.h"
-#include "HeadMountedDisplayFunctionLibrary.h"
 #include "ChickenSlashCharacter.h"
 #include "Engine/World.h"
 #include "Kismet/GameplayStatics.h"
